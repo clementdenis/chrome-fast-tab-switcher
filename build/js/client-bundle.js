@@ -1,4 +1,4 @@
-(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 /*!
  * string_score.js: String Scoring Algorithm 0.1.20
  *
@@ -108,61 +108,192 @@ module.exports = function(search, word, fuzziness) {
 
 },{}],2:[function(require,module,exports){
 // shim for using process in browser
-
 var process = module.exports = {};
 
-process.nextTick = (function () {
-    var canSetImmediate = typeof window !== 'undefined'
-    && window.setImmediate;
-    var canPost = typeof window !== 'undefined'
-    && window.postMessage && window.addEventListener
-    ;
+// cached from whatever global is present so that test runners that stub it
+// don't break things.  But we need to wrap it in a try catch in case it is
+// wrapped in strict mode code which doesn't define any globals.  It's inside a
+// function because try/catches deoptimize in certain engines.
 
-    if (canSetImmediate) {
-        return function (f) { return window.setImmediate(f) };
+var cachedSetTimeout;
+var cachedClearTimeout;
+
+function defaultSetTimout() {
+    throw new Error('setTimeout has not been defined');
+}
+function defaultClearTimeout () {
+    throw new Error('clearTimeout has not been defined');
+}
+(function () {
+    try {
+        if (typeof setTimeout === 'function') {
+            cachedSetTimeout = setTimeout;
+        } else {
+            cachedSetTimeout = defaultSetTimout;
+        }
+    } catch (e) {
+        cachedSetTimeout = defaultSetTimout;
+    }
+    try {
+        if (typeof clearTimeout === 'function') {
+            cachedClearTimeout = clearTimeout;
+        } else {
+            cachedClearTimeout = defaultClearTimeout;
+        }
+    } catch (e) {
+        cachedClearTimeout = defaultClearTimeout;
+    }
+} ())
+function runTimeout(fun) {
+    if (cachedSetTimeout === setTimeout) {
+        //normal enviroments in sane situations
+        return setTimeout(fun, 0);
+    }
+    // if setTimeout wasn't available but was latter defined
+    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
+        cachedSetTimeout = setTimeout;
+        return setTimeout(fun, 0);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedSetTimeout(fun, 0);
+    } catch(e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
+            return cachedSetTimeout.call(null, fun, 0);
+        } catch(e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
+            return cachedSetTimeout.call(this, fun, 0);
+        }
     }
 
-    if (canPost) {
-        var queue = [];
-        window.addEventListener('message', function (ev) {
-            var source = ev.source;
-            if ((source === window || source === null) && ev.data === 'process-tick') {
-                ev.stopPropagation();
-                if (queue.length > 0) {
-                    var fn = queue.shift();
-                    fn();
-                }
+
+}
+function runClearTimeout(marker) {
+    if (cachedClearTimeout === clearTimeout) {
+        //normal enviroments in sane situations
+        return clearTimeout(marker);
+    }
+    // if clearTimeout wasn't available but was latter defined
+    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
+        cachedClearTimeout = clearTimeout;
+        return clearTimeout(marker);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedClearTimeout(marker);
+    } catch (e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
+            return cachedClearTimeout.call(null, marker);
+        } catch (e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
+            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
+            return cachedClearTimeout.call(this, marker);
+        }
+    }
+
+
+
+}
+var queue = [];
+var draining = false;
+var currentQueue;
+var queueIndex = -1;
+
+function cleanUpNextTick() {
+    if (!draining || !currentQueue) {
+        return;
+    }
+    draining = false;
+    if (currentQueue.length) {
+        queue = currentQueue.concat(queue);
+    } else {
+        queueIndex = -1;
+    }
+    if (queue.length) {
+        drainQueue();
+    }
+}
+
+function drainQueue() {
+    if (draining) {
+        return;
+    }
+    var timeout = runTimeout(cleanUpNextTick);
+    draining = true;
+
+    var len = queue.length;
+    while(len) {
+        currentQueue = queue;
+        queue = [];
+        while (++queueIndex < len) {
+            if (currentQueue) {
+                currentQueue[queueIndex].run();
             }
-        }, true);
-
-        return function nextTick(fn) {
-            queue.push(fn);
-            window.postMessage('process-tick', '*');
-        };
+        }
+        queueIndex = -1;
+        len = queue.length;
     }
+    currentQueue = null;
+    draining = false;
+    runClearTimeout(timeout);
+}
 
-    return function nextTick(fn) {
-        setTimeout(fn, 0);
-    };
-})();
+process.nextTick = function (fun) {
+    var args = new Array(arguments.length - 1);
+    if (arguments.length > 1) {
+        for (var i = 1; i < arguments.length; i++) {
+            args[i - 1] = arguments[i];
+        }
+    }
+    queue.push(new Item(fun, args));
+    if (queue.length === 1 && !draining) {
+        runTimeout(drainQueue);
+    }
+};
 
+// v8 likes predictible objects
+function Item(fun, array) {
+    this.fun = fun;
+    this.array = array;
+}
+Item.prototype.run = function () {
+    this.fun.apply(null, this.array);
+};
 process.title = 'browser';
 process.browser = true;
 process.env = {};
 process.argv = [];
+process.version = ''; // empty string to avoid regexp issues
+process.versions = {};
+
+function noop() {}
+
+process.on = noop;
+process.addListener = noop;
+process.once = noop;
+process.off = noop;
+process.removeListener = noop;
+process.removeAllListeners = noop;
+process.emit = noop;
+process.prependListener = noop;
+process.prependOnceListener = noop;
+
+process.listeners = function (name) { return [] }
 
 process.binding = function (name) {
     throw new Error('process.binding is not supported');
-}
+};
 
-// TODO(shtylman)
 process.cwd = function () { return '/' };
 process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
+process.umask = function() { return 0; };
 
 },{}],3:[function(require,module,exports){
-(function (process){
+(function (process,setImmediate){
 // vim:ts=4:sts=4:sw=4:
 /*!
  *
@@ -489,22 +620,6 @@ if (typeof ReturnValue !== "undefined") {
     };
 }
 
-// Until V8 3.19 / Chromium 29 is released, SpiderMonkey is the only
-// engine that has a deployed base of browsers that support generators.
-// However, SM's generators use the Python-inspired semantics of
-// outdated ES6 drafts.  We would like to support ES6, but we'd also
-// like to make it possible to use generators in deployed browsers, so
-// we also support Python-style generators.  At some point we can remove
-// this block.
-var hasES6Generators;
-try {
-    /* jshint evil: true, nonew: false */
-    new Function("(function* (){ yield 1; })");
-    hasES6Generators = true;
-} catch (e) {
-    hasES6Generators = false;
-}
-
 // long stack traces
 
 var STACK_JUMP_SEPARATOR = "From previous event:";
@@ -805,6 +920,7 @@ defer.prototype.makeNodeResolver = function () {
  * @returns a promise that may be resolved with the given resolve and reject
  * functions, or rejected by a thrown exception in resolver
  */
+Q.Promise = promise; // ES6
 Q.promise = promise;
 function promise(resolver) {
     if (typeof resolver !== "function") {
@@ -818,6 +934,11 @@ function promise(resolver) {
     }
     return deferred.promise;
 }
+
+promise.race = race; // ES6
+promise.all = all; // ES6
+promise.reject = reject; // ES6
+promise.resolve = Q; // ES6
 
 // XXX experimental.  This method is a way to denote that a local value is
 // serializable and should be immediately dispatched to a remote upon request,
@@ -1143,42 +1264,14 @@ Promise.prototype.isRejected = function () {
 // shimmed environments, this would naturally be a `Set`.
 var unhandledReasons = [];
 var unhandledRejections = [];
-var unhandledReasonsDisplayed = false;
 var trackUnhandledRejections = true;
-function displayUnhandledReasons() {
-    if (
-        !unhandledReasonsDisplayed &&
-        typeof window !== "undefined" &&
-        window.console
-    ) {
-        console.warn("[Q] Unhandled rejection reasons (should be empty):",
-                     unhandledReasons);
-    }
-
-    unhandledReasonsDisplayed = true;
-}
-
-function logUnhandledReasons() {
-    for (var i = 0; i < unhandledReasons.length; i++) {
-        var reason = unhandledReasons[i];
-        console.warn("Unhandled rejection reason:", reason);
-    }
-}
 
 function resetUnhandledRejections() {
     unhandledReasons.length = 0;
     unhandledRejections.length = 0;
-    unhandledReasonsDisplayed = false;
 
     if (!trackUnhandledRejections) {
         trackUnhandledRejections = true;
-
-        // Show unhandled rejection reasons if Node exits without handling an
-        // outstanding rejection.  (Note that Browserify presently produces a
-        // `process` global without the `EventEmitter` `on` method.)
-        if (typeof process !== "undefined" && process.on) {
-            process.on("exit", logUnhandledReasons);
-        }
     }
 }
 
@@ -1193,7 +1286,6 @@ function trackRejection(promise, reason) {
     } else {
         unhandledReasons.push("(no stack) " + reason);
     }
-    displayUnhandledReasons();
 }
 
 function untrackRejection(promise) {
@@ -1217,9 +1309,6 @@ Q.getUnhandledReasons = function () {
 
 Q.stopUnhandledRejectionTracking = function () {
     resetUnhandledRejections();
-    if (typeof process !== "undefined" && process.on) {
-        process.removeListener("exit", logUnhandledReasons);
-    }
     trackUnhandledRejections = false;
 };
 
@@ -1383,7 +1472,17 @@ function async(makeGenerator) {
         // when verb is "throw", arg is an exception
         function continuer(verb, arg) {
             var result;
-            if (hasES6Generators) {
+
+            // Until V8 3.19 / Chromium 29 is released, SpiderMonkey is the only
+            // engine that has a deployed base of browsers that support generators.
+            // However, SM's generators use the Python-inspired semantics of
+            // outdated ES6 drafts.  We would like to support ES6, but we'd also
+            // like to make it possible to use generators in deployed browsers, so
+            // we also support Python-style generators.  At some point we can remove
+            // this block.
+
+            if (typeof StopIteration === "undefined") {
+                // ES6 Generators
                 try {
                     result = generator[verb](arg);
                 } catch (exception) {
@@ -1395,6 +1494,7 @@ function async(makeGenerator) {
                     return when(result.value, callback, errback);
                 }
             } else {
+                // SpiderMonkey Generators
                 // FIXME: Remove this case when SM does ES6 generators.
                 try {
                     result = generator[verb](arg);
@@ -2099,16 +2199,95 @@ return Q;
 
 });
 
-}).call(this,require("/dev_exclusions/src/chrome-tab-switcher/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"))
-},{"/dev_exclusions/src/chrome-tab-switcher/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":2}],4:[function(require,module,exports){
+}).call(this,require('_process'),require("timers").setImmediate)
+},{"_process":2,"timers":4}],4:[function(require,module,exports){
+(function (setImmediate,clearImmediate){
+var nextTick = require('process/browser.js').nextTick;
+var apply = Function.prototype.apply;
+var slice = Array.prototype.slice;
+var immediateIds = {};
+var nextImmediateId = 0;
+
+// DOM APIs, for completeness
+
+exports.setTimeout = function() {
+  return new Timeout(apply.call(setTimeout, window, arguments), clearTimeout);
+};
+exports.setInterval = function() {
+  return new Timeout(apply.call(setInterval, window, arguments), clearInterval);
+};
+exports.clearTimeout =
+exports.clearInterval = function(timeout) { timeout.close(); };
+
+function Timeout(id, clearFn) {
+  this._id = id;
+  this._clearFn = clearFn;
+}
+Timeout.prototype.unref = Timeout.prototype.ref = function() {};
+Timeout.prototype.close = function() {
+  this._clearFn.call(window, this._id);
+};
+
+// Does not start the time, just sets up the members needed.
+exports.enroll = function(item, msecs) {
+  clearTimeout(item._idleTimeoutId);
+  item._idleTimeout = msecs;
+};
+
+exports.unenroll = function(item) {
+  clearTimeout(item._idleTimeoutId);
+  item._idleTimeout = -1;
+};
+
+exports._unrefActive = exports.active = function(item) {
+  clearTimeout(item._idleTimeoutId);
+
+  var msecs = item._idleTimeout;
+  if (msecs >= 0) {
+    item._idleTimeoutId = setTimeout(function onTimeout() {
+      if (item._onTimeout)
+        item._onTimeout();
+    }, msecs);
+  }
+};
+
+// That's not how node.js implements it but the exposed api is the same.
+exports.setImmediate = typeof setImmediate === "function" ? setImmediate : function(fn) {
+  var id = nextImmediateId++;
+  var args = arguments.length < 2 ? false : slice.call(arguments, 1);
+
+  immediateIds[id] = true;
+
+  nextTick(function onNextTick() {
+    if (immediateIds[id]) {
+      // fn.call() is faster so we optimize for the common use-case
+      // @see http://jsperf.com/call-apply-segu
+      if (args) {
+        fn.apply(null, args);
+      } else {
+        fn.call(null);
+      }
+      // Prevent ids from leaking
+      exports.clearImmediate(id);
+    }
+  });
+
+  return id;
+};
+
+exports.clearImmediate = typeof clearImmediate === "function" ? clearImmediate : function(id) {
+  delete immediateIds[id];
+};
+}).call(this,require("timers").setImmediate,require("timers").clearImmediate)
+},{"process/browser.js":2,"timers":4}],5:[function(require,module,exports){
 /** @jsx React.DOM */Mousetrap.stopCallback = function() { return false; };
 var TabSwitcher = require('./client/tab_switcher.jsx');
 
 /* jshint ignore:start */
-React.renderComponent(TabSwitcher(null ), document.getElementById('switcher'));
+React.renderComponent(TabSwitcher(null), document.getElementById('switcher'));
 /* jshint ignore:end */
 
-},{"./client/tab_switcher.jsx":13}],5:[function(require,module,exports){
+},{"./client/tab_switcher.jsx":14}],6:[function(require,module,exports){
 module.exports = {
   componentWillMount: function() {
     this._boundKeys = [];
@@ -2127,7 +2306,7 @@ module.exports = {
   }
 };
 
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 /** @jsx React.DOM */var KeybindMixin = require('./keybind_mixin');
 
 module.exports = React.createClass({displayName: 'exports',
@@ -2140,10 +2319,10 @@ module.exports = React.createClass({displayName: 'exports',
   render: function() {
     return (
       /* jshint ignore:start */
-      React.DOM.label( {className:"status"}, 
-        React.DOM.input( {type:"checkbox", checked:this.props.searchAllWindows,
-          onChange:this.onChange} ),
-        React.DOM.span(null, "Show tabs from ", React.DOM.u(null, "a"),"ll windows")
+      React.DOM.label({className: "status"}, 
+        React.DOM.input({type: "checkbox", checked: this.props.searchAllWindows, 
+          onChange: this.onChange}), 
+        React.DOM.span(null, "Show tabs from ", React.DOM.u(null, "a"), "ll windows")
       )
       /* jshint ignore:end */
     );
@@ -2158,7 +2337,7 @@ module.exports = React.createClass({displayName: 'exports',
   }
 });
 
-},{"./keybind_mixin":5}],7:[function(require,module,exports){
+},{"./keybind_mixin":6}],8:[function(require,module,exports){
 var sections = function(haystack, needle, remaining, acc, offset) {
   if (!acc) acc = [];
   if (!remaining) remaining = "";
@@ -2205,7 +2384,7 @@ module.exports = function(haystack, needle, pre, post) {
   return result;
 };
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 var Q = require('q');
 var util = require('../util');
 
@@ -2247,7 +2426,7 @@ module.exports = function(chrome) {
   };
 };
 
-},{"../util":14,"q":3}],9:[function(require,module,exports){
+},{"../util":15,"q":3}],10:[function(require,module,exports){
 /**
  * A tab filter is simply a function that takes a string to filter
  * on and an array of tabs; it will determine if the tab title or URL
@@ -2278,83 +2457,109 @@ module.exports = function(scorer) {
   };
 };
 
-},{}],10:[function(require,module,exports){
-/** @jsx React.DOM */var stringSpanner = require('./string_spanner');
+},{}],11:[function(require,module,exports){
+/** @jsx React.DOM */var stringSpanner = require("./string_spanner");
 
 var MATCH_START = '<span class="match">';
-var MATCH_END = '</span>';
+var MATCH_END = "</span>";
 
 module.exports = React.createClass({displayName: 'exports',
-  render: function() {
-    /* jshint ignore:start */
-    var closeButton = this.props.selected ?
-      React.DOM.div( {className:"close-button", onClick:this.onClickCloseButton}, "×") : null;
+    render: function() {
+        /* jshint ignore:start */
+        var closeButton = this.props.selected ? (
+            React.DOM.div({className: "close-button", onClick: this.onClickCloseButton}, 
+                "×"
+            )
+        ) : null;
 
-    return (
-      React.DOM.li( {className:this.className(),
-        onClick:this.onClick, onMouseEnter:this.onMouseEnter}, 
-        React.DOM.div(null, 
-          React.DOM.div( {className:"bkg", style:this.iconBkg(this.props.tab)} ),
-          React.DOM.span( {className:"title",
-            dangerouslySetInnerHTML:{__html: this.tabTitle(this.props.tab)}} )
-        ),
-        React.DOM.div( {className:"url",
-          dangerouslySetInnerHTML:{__html: this.tabUrl(this.props.tab)}} ),
-        closeButton
-      )
-    );
-    /* jshint ignore:end */
-  },
+        return (
+            React.DOM.li({
+                className: this.className(), 
+                onClick: this.onClick, 
+                onMouseMove: this.onMouseMove}, 
+                React.DOM.div(null, 
+                    React.DOM.div({className: "bkg", style: this.iconBkg(this.props.tab)}), 
+                    React.DOM.span({
+                        className: "title", 
+                        dangerouslySetInnerHTML: {
+                            __html: this.tabTitle(this.props.tab)
+                        }}
+                    )
+                ), 
+                React.DOM.div({
+                    className: "url", 
+                    dangerouslySetInnerHTML: {
+                        __html: this.tabUrl(this.props.tab)
+                    }}
+                ), 
+                closeButton
+            )
+        );
+        /* jshint ignore:end */
+    },
 
-  componentDidUpdate: function() {
-    if (this.props.selected) {
-      this.ensureVisible();
+    componentDidUpdate: function() {
+        if (this.props.selected) {
+            this.ensureVisible();
+        }
+    },
+
+    ensureVisible: function() {
+        var node = this.getDOMNode();
+        var myTop = node.offsetTop;
+        var myBottom = myTop + node.offsetHeight;
+        var containerScrollTop = this.props.containerScrollTop;
+        var containerScrollBottom =
+            containerScrollTop + this.props.containerHeight;
+
+        if (myTop < containerScrollTop) this.props.setContainerScrollTop(myTop);
+        if (myBottom > containerScrollBottom)
+            this.props.setContainerScrollTop(
+                containerScrollTop + myBottom - containerScrollBottom
+            );
+    },
+
+    iconBkg: function(tab) {
+        return { backgroundImage: "url(" + tab.favIconUrl + ")" };
+    },
+
+    className: function() {
+        return this.props.selected ? "selected" : "";
+    },
+
+    tabTitle: function(tab) {
+        return stringSpanner(
+            tab.title,
+            this.props.filter,
+            MATCH_START,
+            MATCH_END
+        );
+    },
+
+    tabUrl: function(tab) {
+        return stringSpanner(
+            tab.url,
+            this.props.filter,
+            MATCH_START,
+            MATCH_END
+        );
+    },
+
+    onMouseMove: function(evt) {
+        this.props.changeSelected(this.props.tab);
+    },
+
+    onClick: function(evt) {
+        this.props.activateSelected();
+    },
+
+    onClickCloseButton: function(evt) {
+        evt.stopPropagation();
+        this.props.closeSelected();
     }
-  },
-
-  ensureVisible: function() {
-    var node = this.getDOMNode();
-    var myTop = node.offsetTop;
-    var myBottom = myTop + node.offsetHeight;
-    var containerScrollTop = this.props.containerScrollTop;
-    var containerScrollBottom = containerScrollTop + this.props.containerHeight;
-
-    if (myTop < containerScrollTop) this.props.setContainerScrollTop(myTop);
-    if (myBottom > containerScrollBottom)
-      this.props.setContainerScrollTop(containerScrollTop + myBottom - containerScrollBottom);
-  },
-
-  iconBkg: function(tab) {
-    return {backgroundImage: "url(" + tab.favIconUrl + ")"};
-  },
-
-  className: function() {
-    return this.props.selected ? "selected" : "";
-  },
-
-  tabTitle: function(tab) {
-    return stringSpanner(tab.title, this.props.filter, MATCH_START, MATCH_END);
-  },
-
-  tabUrl: function(tab) {
-    return stringSpanner(tab.url, this.props.filter, MATCH_START, MATCH_END);
-  },
-
-  onMouseEnter: function(evt) {
-    this.props.changeSelected(this.props.tab);
-  },
-
-  onClick: function(evt) {
-    this.props.activateSelected();
-  },
-
-  onClickCloseButton: function(evt) {
-    evt.stopPropagation();
-    this.props.closeSelected();
-  }
 });
 
-},{"./string_spanner":7}],11:[function(require,module,exports){
+},{"./string_spanner":8}],12:[function(require,module,exports){
 /** @jsx React.DOM */var TabItem = require('./tab_item.jsx');
 
 module.exports = React.createClass({displayName: 'exports',
@@ -2363,14 +2568,14 @@ module.exports = React.createClass({displayName: 'exports',
       /* jshint ignore:start */
       React.DOM.ul(null, 
         this.props.tabs.map(function(tab, i) {
-          return TabItem( {tab:tab, key:tab.id, filter:this.props.filter,
-            selected:this.props.selectedTab === tab,
-            changeSelected:this.props.changeSelected,
-            activateSelected:this.props.activateSelected,
-            closeSelected:this.props.closeSelected,
-            containerScrollTop:this.getScrollTop(),
-            containerHeight:this.getHeight(),
-            setContainerScrollTop:this.setScrollTop} );
+          return TabItem({tab: tab, key: tab.id, filter: this.props.filter, 
+            selected: this.props.selectedTab === tab, 
+            changeSelected: this.props.changeSelected, 
+            activateSelected: this.props.activateSelected, 
+            closeSelected: this.props.closeSelected, 
+            containerScrollTop: this.getScrollTop(), 
+            containerHeight: this.getHeight(), 
+            setContainerScrollTop: this.setScrollTop});
         }.bind(this))
       )
       /* jshint ignore:end */
@@ -2390,7 +2595,7 @@ module.exports = React.createClass({displayName: 'exports',
   }
 });
 
-},{"./tab_item.jsx":10}],12:[function(require,module,exports){
+},{"./tab_item.jsx":11}],13:[function(require,module,exports){
 /** @jsx React.DOM */var KeybindMixin = require('./keybind_mixin');
 
 module.exports = React.createClass({displayName: 'exports',
@@ -2403,6 +2608,7 @@ module.exports = React.createClass({displayName: 'exports',
   componentDidMount: function() {
     this.bindKey('esc', this.props.exit);
     this.bindKey('enter', this.props.activateSelected);
+    this.bindKey('backspace', this.props.closeSelected);
     this.bindKey('up', this.selectPrevious);
     this.bindKey('down', this.selectNext);
   },
@@ -2414,7 +2620,7 @@ module.exports = React.createClass({displayName: 'exports',
   render: function() {
     return (
       /* jshint ignore:start */
-      React.DOM.input( {type:"text", ref:"input", autoFocus:"true", onChange:this.onChange} )
+      React.DOM.input({type: "text", ref: "input", autoFocus: "true", onChange: this.onChange})
       /* jshint ignore:end */
     );
   },
@@ -2433,7 +2639,7 @@ module.exports = React.createClass({displayName: 'exports',
   }
 });
 
-},{"./keybind_mixin":5}],13:[function(require,module,exports){
+},{"./keybind_mixin":6}],14:[function(require,module,exports){
 /** @jsx React.DOM */var stringScore = require('../../../lib/string_score');
 var tabBroker = require('./tab_broker')(chrome);
 var tabFilter = require('./tab_filter')(stringScore);
@@ -2469,23 +2675,23 @@ module.exports = React.createClass({displayName: 'exports',
     return (
       /* jshint ignore:start */
       React.DOM.div(null, 
-        TabSearchBox(
-          {filter:this.state.filter,
-          exit:this.close,
-          changeFilter:this.changeFilter,
-          activateSelected:this.activateSelected,
-          modifySelected:this.modifySelected,
-          closeSelected:this.closeSelected} ),
-        TabList(
-          {tabs:this.filteredTabs(),
-          filter:this.state.filter,
-          selectedTab:this.getSelected(),
-          changeSelected:this.changeSelected,
-          activateSelected:this.activateSelected,
-          closeSelected:this.closeSelected} ),
-        StatusBar(
-          {searchAllWindows:this.state.searchAllWindows,
-          changeSearchAllWindows:this.changeSearchAllWindows} )
+        TabSearchBox({
+          filter: this.state.filter, 
+          exit: this.close, 
+          changeFilter: this.changeFilter, 
+          activateSelected: this.activateSelected, 
+          modifySelected: this.modifySelected, 
+          closeSelected: this.closeSelected}), 
+        TabList({
+          tabs: this.filteredTabs(), 
+          filter: this.state.filter, 
+          selectedTab: this.getSelected(), 
+          changeSelected: this.changeSelected, 
+          activateSelected: this.activateSelected, 
+          closeSelected: this.closeSelected}), 
+        StatusBar({
+          searchAllWindows: this.state.searchAllWindows, 
+          changeSearchAllWindows: this.changeSearchAllWindows})
       )
       /* jshint ignore:end */
     );
@@ -2574,7 +2780,7 @@ module.exports = React.createClass({displayName: 'exports',
   }
 });
 
-},{"../../../lib/string_score":1,"./status_bar.jsx":6,"./tab_broker":8,"./tab_filter":9,"./tab_list.jsx":11,"./tab_search_box.jsx":12}],14:[function(require,module,exports){
+},{"../../../lib/string_score":1,"./status_bar.jsx":7,"./tab_broker":9,"./tab_filter":10,"./tab_list.jsx":12,"./tab_search_box.jsx":13}],15:[function(require,module,exports){
 var Q = require('q');
 
 module.exports = {
@@ -2593,4 +2799,4 @@ module.exports = {
   }
 };
 
-},{"q":3}]},{},[4])
+},{"q":3}]},{},[5]);
