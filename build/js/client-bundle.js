@@ -2608,7 +2608,6 @@ module.exports = React.createClass({displayName: 'exports',
   componentDidMount: function() {
     this.bindKey('esc', this.props.exit);
     this.bindKey('enter', this.props.activateSelected);
-    this.bindKey('backspace', this.props.closeSelected);
     this.bindKey('up', this.selectPrevious);
     this.bindKey('down', this.selectNext);
   },
