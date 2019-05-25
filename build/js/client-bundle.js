@@ -2596,7 +2596,7 @@ module.exports = React.createClass({displayName: 'exports',
 });
 
 },{"./tab_item.jsx":11}],13:[function(require,module,exports){
-/** @jsx React.DOM */var KeybindMixin = require('./keybind_mixin');
+/** @jsx React.DOM */var KeybindMixin = require("./keybind_mixin");
 
 module.exports = React.createClass({displayName: 'exports',
   mixins: [KeybindMixin],
@@ -2606,10 +2606,11 @@ module.exports = React.createClass({displayName: 'exports',
   },
 
   componentDidMount: function() {
-    this.bindKey('esc', this.props.exit);
-    this.bindKey('enter', this.props.activateSelected);
-    this.bindKey('up', this.selectPrevious);
-    this.bindKey('down', this.selectNext);
+    this.bindKey("esc", this.props.exit);
+    this.bindKey("enter", this.props.activateSelected);
+    this.bindKey("up", this.selectPrevious);
+    this.bindKey("down", this.selectNext);
+    this.bindKey("fn+del", this.props.closeSelected);
   },
 
   componentWillUnmount: function() {
@@ -2619,7 +2620,12 @@ module.exports = React.createClass({displayName: 'exports',
   render: function() {
     return (
       /* jshint ignore:start */
-      React.DOM.input({type: "text", ref: "input", autoFocus: "true", onChange: this.onChange})
+      React.DOM.input({
+        type: "text", 
+        ref: "input", 
+        autoFocus: "true", 
+        onChange: this.onChange}
+      )
       /* jshint ignore:end */
     );
   },

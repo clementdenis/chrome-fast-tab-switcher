@@ -1,4 +1,4 @@
-var KeybindMixin = require('./keybind_mixin');
+var KeybindMixin = require("./keybind_mixin");
 
 module.exports = React.createClass({
   mixins: [KeybindMixin],
@@ -8,10 +8,11 @@ module.exports = React.createClass({
   },
 
   componentDidMount: function() {
-    this.bindKey('esc', this.props.exit);
-    this.bindKey('enter', this.props.activateSelected);
-    this.bindKey('up', this.selectPrevious);
-    this.bindKey('down', this.selectNext);
+    this.bindKey("esc", this.props.exit);
+    this.bindKey("enter", this.props.activateSelected);
+    this.bindKey("up", this.selectPrevious);
+    this.bindKey("down", this.selectNext);
+    this.bindKey("fn+del", this.props.closeSelected);
   },
 
   componentWillUnmount: function() {
@@ -21,7 +22,12 @@ module.exports = React.createClass({
   render: function() {
     return (
       /* jshint ignore:start */
-      <input type='text' ref='input' autoFocus='true' onChange={this.onChange} />
+      <input
+        type="text"
+        ref="input"
+        autoFocus="true"
+        onChange={this.onChange}
+      />
       /* jshint ignore:end */
     );
   },
