@@ -134,6 +134,7 @@ module.exports = React.createClass({
   },
 
   close: function() {
-    window.close();
+    //calling window.close without timeout prevents messages to be sent to service worker
+    setTimeout(window.close, 100);
   }
 });

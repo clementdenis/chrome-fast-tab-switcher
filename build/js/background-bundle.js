@@ -185,7 +185,7 @@ process.chdir = function (dir) {
 process.umask = function() { return 0; };
 
 },{}],2:[function(require,module,exports){
-(function (process,setImmediate){
+(function (process,setImmediate){(function (){
 // vim:ts=4:sts=4:sw=4:
 /*!
  *
@@ -2091,9 +2091,9 @@ return Q;
 
 });
 
-}).call(this,require('_process'),require("timers").setImmediate)
+}).call(this)}).call(this,require('_process'),require("timers").setImmediate)
 },{"_process":1,"timers":3}],3:[function(require,module,exports){
-(function (setImmediate,clearImmediate){
+(function (setImmediate,clearImmediate){(function (){
 var nextTick = require('process/browser.js').nextTick;
 var apply = Function.prototype.apply;
 var slice = Array.prototype.slice;
@@ -2170,7 +2170,7 @@ exports.setImmediate = typeof setImmediate === "function" ? setImmediate : funct
 exports.clearImmediate = typeof clearImmediate === "function" ? clearImmediate : function(id) {
   delete immediateIds[id];
 };
-}).call(this,require("timers").setImmediate,require("timers").clearImmediate)
+}).call(this)}).call(this,require("timers").setImmediate,require("timers").clearImmediate)
 },{"process/browser.js":1,"timers":3}],4:[function(require,module,exports){
 var Q = require('q');
 var tabHistory = require('./background/tab_history')(chrome);
@@ -2261,6 +2261,8 @@ chrome.runtime.onMessage.addListener(function(request, sender, respond) {
 },{"./background/tab_history":5,"./background/window_manager":6,"q":2}],5:[function(require,module,exports){
 var Q = require('q');
 var util = require('../util');
+var storeData;
+var windows;
 
 // This module keeps a list of recently activated tabs, and persists
 // it to and from local storage. We use this data to allow the

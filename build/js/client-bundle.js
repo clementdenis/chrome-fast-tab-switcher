@@ -293,7 +293,7 @@ process.chdir = function (dir) {
 process.umask = function() { return 0; };
 
 },{}],3:[function(require,module,exports){
-(function (process,setImmediate){
+(function (process,setImmediate){(function (){
 // vim:ts=4:sts=4:sw=4:
 /*!
  *
@@ -2199,9 +2199,9 @@ return Q;
 
 });
 
-}).call(this,require('_process'),require("timers").setImmediate)
+}).call(this)}).call(this,require('_process'),require("timers").setImmediate)
 },{"_process":2,"timers":4}],4:[function(require,module,exports){
-(function (setImmediate,clearImmediate){
+(function (setImmediate,clearImmediate){(function (){
 var nextTick = require('process/browser.js').nextTick;
 var apply = Function.prototype.apply;
 var slice = Array.prototype.slice;
@@ -2278,7 +2278,7 @@ exports.setImmediate = typeof setImmediate === "function" ? setImmediate : funct
 exports.clearImmediate = typeof clearImmediate === "function" ? clearImmediate : function(id) {
   delete immediateIds[id];
 };
-}).call(this,require("timers").setImmediate,require("timers").clearImmediate)
+}).call(this)}).call(this,require("timers").setImmediate,require("timers").clearImmediate)
 },{"process/browser.js":2,"timers":4}],5:[function(require,module,exports){
 /** @jsx React.DOM */Mousetrap.stopCallback = function() { return false; };
 var TabSwitcher = require('./client/tab_switcher.jsx');
@@ -2781,7 +2781,8 @@ module.exports = React.createClass({displayName: 'exports',
   },
 
   close: function() {
-    window.close();
+    //calling window.close without timeout prevents messages to be sent to service worker
+    setTimeout(window.close, 100);
   }
 });
 

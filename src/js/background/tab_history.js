@@ -1,5 +1,7 @@
 var Q = require('q');
 var util = require('../util');
+var storeData;
+var windows;
 
 // This module keeps a list of recently activated tabs, and persists
 // it to and from local storage. We use this data to allow the
