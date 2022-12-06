@@ -1,16 +1,16 @@
-var stringScore = require('../../../lib/string_score');
-var tabBroker = require('./tab_broker')(chrome);
-var tabFilter = require('./tab_filter')(stringScore);
+const stringScore = require('../../../lib/string_score');
+const tabBroker = require('./tab_broker')(chrome);
+const tabFilter = require('./tab_filter')(stringScore);
 
-var TabSearchBox = require('./tab_search_box.jsx');
-var TabList = require('./tab_list.jsx');
-var StatusBar = require('./status_bar.jsx');
+const TabSearchBox = require('./tab_search_box.jsx');
+const TabList = require('./tab_list.jsx');
+const StatusBar = require('./status_bar.jsx');
 
 module.exports = React.createClass({
   getInitialState: function() {
     // TODO: move into a model
-    var searchAllWindows = localStorage.getItem('searchAllWindows');
-    try {
+      let searchAllWindows = localStorage.getItem('searchAllWindows');
+      try {
       searchAllWindows = searchAllWindows ? JSON.parse(searchAllWindows) : false;
     } catch (error) {
       searchAllWindows = false;
@@ -81,8 +81,8 @@ module.exports = React.createClass({
   },
 
   activateSelected: function() {
-    var selected = this.getSelected();
-    if (selected) {
+      const selected = this.getSelected();
+      if (selected) {
       tabBroker.switchTo(selected);
       this.close();
     }
@@ -90,16 +90,16 @@ module.exports = React.createClass({
 
   closeSelected: function() {
     /* jshint expr: true */
-    var selected = this.getSelected();
-    var index = this.state.tabs.indexOf(selected);
+      const selected = this.getSelected();
+      const index = this.state.tabs.indexOf(selected);
 
-    if (selected) {
+      if (selected) {
       this.modifySelected(1) || this.modifySelected(-1);
     }
 
     if (index > -1) {
-      var tabs = this.state.tabs;
-      tabs.splice(index, 1);
+        const tabs = this.state.tabs;
+        tabs.splice(index, 1);
       this.setState({tabs: tabs});
     }
 
@@ -115,15 +115,15 @@ module.exports = React.createClass({
   },
 
   modifySelected: function(change) {
-    var filteredTabs = this.filteredTabs();
-    if (!filteredTabs.length) return;
+      const filteredTabs = this.filteredTabs();
+      if (!filteredTabs.length) return;
 
-    var currentIndex = filteredTabs.indexOf(this.getSelected());
-    var newIndex = currentIndex + change;
-    if (newIndex < 0) return false;
+      const currentIndex = filteredTabs.indexOf(this.getSelected());
+      const newIndex = currentIndex + change;
+      if (newIndex < 0) return false;
     if (newIndex >= filteredTabs.length) return false;
-    var newTab = filteredTabs[newIndex];
-    this.changeSelected(newTab);
+      const newTab = filteredTabs[newIndex];
+      this.changeSelected(newTab);
     return true;
   },
 

@@ -9,21 +9,13 @@
  * is no match at all. Tabs with a score of 0 for both the title
  * and URL will not be returned from the filter.
  */
-module.exports = function(scorer) {
-  return function(query, array) {
-    return array.map(function(item) {
-      var titleScore = scorer(item.title.trim(), query.trim()) * 2;
-      var urlScore = scorer(item.url.trim(), query.trim());
-      var higherScore = titleScore >= urlScore ?
-        titleScore : urlScore;
-      return {
-        tab: item,
-        score: higherScore
-      };
-    }).filter(function(result) {
-      return result.score > 0;
-    }).sort(function(a, b) {
-      return b.score - a.score;
-    });
+module.exports = scorer => (query, array) => array.map(item => {
+  const titleScore = scorer(item.title.trim(), query.trim()) * 2;
+  const urlScore = scorer(item.url.trim(), query.trim());
+  const higherScore = titleScore >= urlScore ?
+      titleScore : urlScore;
+  return {
+    tab: item,
+    score: higherScore
   };
-};
+}).filter(result => result.score > 0).sort((a, b) => b.score - a.score);

@@ -1,11 +1,11 @@
-var Q = require('q');
-var tabBroker = require('../../src/js/client/tab_broker');
+const Q = require('q');
+const tabBroker = require('../../src/js/client/tab_broker');
 
 exports.query = {
   setUp: function(cb) {
-    var chrome = {
+    const chrome = {
       runtime: {
-        sendMessage: function(opts, callback) {
+        sendMessage: function (opts, callback) {
           callback({tabs: [{id: 1}, {id: 2}, {id: 3}], lastActive: 2});
         }
       }
@@ -25,9 +25,9 @@ exports.query = {
 
 exports.switchTo = {
   setUp: function(cb) {
-    var chrome = this.chrome = {
+    const chrome = this.chrome = {
       runtime: {
-        sendMessage: function(opts) {
+        sendMessage: function (opts) {
           if (!chrome.runtime.sendMessage.calls) chrome.runtime.sendMessage.calls = [];
           chrome.runtime.sendMessage.calls.push(opts)
         }
@@ -46,9 +46,9 @@ exports.switchTo = {
 
 exports.close = {
   setUp: function(cb) {
-    var chrome = this.chrome = {
+    const chrome = this.chrome = {
       runtime: {
-        sendMessage: function(opts) {
+        sendMessage: function (opts) {
           if (!chrome.runtime.sendMessage.calls) chrome.runtime.sendMessage.calls = [];
           chrome.runtime.sendMessage.calls.push(opts)
         }

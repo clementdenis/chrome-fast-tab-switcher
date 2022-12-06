@@ -1,33 +1,33 @@
-var Q = require('q');
-var tabHistory = require('../../src/js/background/tab_history');
-var api;
+const Q = require('q');
+const tabHistory = require('../../src/js/background/tab_history');
+let api;
 
-var localStorageWith = function(val) {
+const localStorageWith = function (val) {
   return {
     local: {
-      get: function(key, cb) {
+      get: function (key, cb) {
         cb({lastTabs: val});
       }
     }
   }
 };
 
-var windowsWith = function(windows) {
+const windowsWith = function (windows) {
   return {
-    getAll: function(cb) {
+    getAll: function (cb) {
       cb(windows);
     }
   }
 };
 
-var standardChrome = {
+const standardChrome = {
   storage: localStorageWith(JSON.stringify({1: [2, 3]})),
   windows: windowsWith([{id: 1}])
 };
 
 exports.withEmptyLocalStorage = {
   setUp: function(cb) {
-    var chrome = {
+    const chrome = {
       storage: localStorageWith(null),
       windows: windowsWith([])
     };
@@ -46,7 +46,7 @@ exports.withEmptyLocalStorage = {
 
 exports.withDataInLocalStorage = {
   setUp: function(cb) {
-    var chrome = {
+    const chrome = {
       storage: localStorageWith(JSON.stringify({1: [2, 3], 4: [5, 6]})),
       windows: windowsWith([{id: 1}, {id: 4}])
     };
@@ -83,7 +83,7 @@ exports.withDataInLocalStorage = {
 
 exports.withMissingWindows = {
   setUp: function(cb) {
-    var chrome = {
+    const chrome = {
       storage: localStorageWith(JSON.stringify({1: [2, 3], 4: [5, 6]})),
       windows: windowsWith([{id: 1}])
     };

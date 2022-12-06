@@ -1,12 +1,12 @@
-var stringSpanner = require("./string_spanner");
+const stringSpanner = require("./string_spanner");
 
-var MATCH_START = '<span class="match">';
-var MATCH_END = "</span>";
+const MATCH_START = '<span class="match">';
+const MATCH_END = "</span>";
 
 module.exports = React.createClass({
     render: function() {
         /* jshint ignore:start */
-        var closeButton = this.props.selected ? (
+        const closeButton = this.props.selected ? (
             <div className="close-button" onClick={this.onClickCloseButton}>
                 &times;
             </div>
@@ -45,11 +45,11 @@ module.exports = React.createClass({
     },
 
     ensureVisible: function() {
-        var node = this.getDOMNode();
-        var myTop = node.offsetTop;
-        var myBottom = myTop + node.offsetHeight;
-        var containerScrollTop = this.props.containerScrollTop;
-        var containerScrollBottom =
+        const node = this.getDOMNode();
+        const myTop = node.offsetTop;
+        const myBottom = myTop + node.offsetHeight;
+        const containerScrollTop = this.props.containerScrollTop;
+        const containerScrollBottom =
             containerScrollTop + this.props.containerHeight;
 
         if (myTop < containerScrollTop) this.props.setContainerScrollTop(myTop);

@@ -1,4 +1,4 @@
-var TabItem = require('./tab_item.jsx');
+const TabItem = require('./tab_item.jsx');
 
 module.exports = React.createClass({
   render: function() {

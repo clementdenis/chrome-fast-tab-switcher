@@ -26,15 +26,15 @@ module.exports = function(search, word, fuzziness) {
   //if it's not a perfect match and is empty return 0
   if( word == "") return 0;
 
-  var runningScore = 0,
+  let runningScore = 0,
       charScore,
-      finalScore,
-      string = search,
+      finalScore;
+  const string = search,
       lString = string.toLowerCase(),
       strLength = string.length,
       lWord = word.toLowerCase(),
-      wordLength = word.length,
-      idxOf,
+      wordLength = word.length;
+  let idxOf,
       startAt = 0,
       fuzzies = 1,
       fuzzyFactor;
@@ -45,7 +45,7 @@ module.exports = function(search, word, fuzziness) {
   // Walk through word and add up scores.
   // Code duplication occurs to prevent checking fuzziness inside for loop
   if (fuzziness) {
-    for (var i = 0; i < wordLength; ++i) {
+    for (let i = 0; i < wordLength; ++i) {
 
       // Find next first case-insensitive match of a character.
       idxOf = lString.indexOf(lWord[i], startAt);
@@ -73,7 +73,7 @@ module.exports = function(search, word, fuzziness) {
       startAt = idxOf + 1;
     }
   } else {
-    for (var i = 0; i < wordLength; ++i) {
+    for (let i = 0; i < wordLength; ++i) {
       // EDIT: skip spaces in the needle
       if (lWord[i] === ' ') continue;
 
@@ -2281,7 +2281,7 @@ exports.clearImmediate = typeof clearImmediate === "function" ? clearImmediate :
 }).call(this)}).call(this,require("timers").setImmediate,require("timers").clearImmediate)
 },{"process/browser.js":2,"timers":4}],5:[function(require,module,exports){
 /** @jsx React.DOM */Mousetrap.stopCallback = function() { return false; };
-var TabSwitcher = require('./client/tab_switcher.jsx');
+const TabSwitcher = require('./client/tab_switcher.jsx');
 
 /* jshint ignore:start */
 React.renderComponent(TabSwitcher(null), document.getElementById('switcher'));
@@ -2307,7 +2307,7 @@ module.exports = {
 };
 
 },{}],7:[function(require,module,exports){
-/** @jsx React.DOM */var KeybindMixin = require('./keybind_mixin');
+/** @jsx React.DOM */const KeybindMixin = require('./keybind_mixin');
 
 module.exports = React.createClass({displayName: 'exports',
   mixins: [KeybindMixin],
@@ -2338,42 +2338,41 @@ module.exports = React.createClass({displayName: 'exports',
 });
 
 },{"./keybind_mixin":6}],8:[function(require,module,exports){
-var sections = function(haystack, needle, remaining, acc, offset) {
+const sections = (haystack, needle, remaining, acc, offset) => {
   if (!acc) acc = [];
   if (!remaining) remaining = "";
   if (!offset) offset = 0;
 
   needle = needle.trim();
-  var index = haystack.toLowerCase().indexOf(needle.toLowerCase());
+  const index = haystack.toLowerCase().indexOf(needle.toLowerCase());
   if (index > -1) {
     if (remaining.length) {
-      var remainingHaystack = haystack.substr(needle.length + index);
-      var newAcc = acc.concat([[offset + index, offset + needle.length + index]]);
+      const remainingHaystack = haystack.substr(needle.length + index);
+      const newAcc = acc.concat([[offset + index, offset + needle.length + index]]);
       return sections(remainingHaystack, remaining, null, newAcc, offset + needle.length + index);
     } else {
       return acc.concat([[offset + index, offset + needle.length + index]]);
     }
   } else if (needle.length > 1) {
-    var nextNeedle = needle.substr(0, needle.length - 1);
+    const nextNeedle = needle.substr(0, needle.length - 1);
     return sections(haystack, nextNeedle, needle.substr(needle.length - 1) + remaining, acc, offset);
   } else {
     return [];
   }
 };
 
-module.exports = function(haystack, needle, pre, post) {
+module.exports = (haystack, needle, pre, post) => {
   if (!pre) pre = '';
   if (!post) post = '';
 
-  var matches = sections(haystack, needle);
+  const matches = sections(haystack, needle);
   if (!matches.length) return haystack;
-  var lastPos = 0;
-  var result = '';
+  let lastPos = 0;
+  let result = '';
 
-  for (var idx in matches) {
-    var match = matches[idx];
-    var start = match[0];
-    var end = match[1];
+  for (const match of matches) {
+    const start = match[0];
+    const end = match[1];
     result += haystack.substring(lastPos, start);
     result += pre + haystack.substring(start, end) + post;
     lastPos = end;
@@ -2385,29 +2384,28 @@ module.exports = function(haystack, needle, pre, post) {
 };
 
 },{}],9:[function(require,module,exports){
-var Q = require('q');
-var util = require('../util');
+const Q = require('q');
+const util = require('../util');
 
-module.exports = function(chrome) {
-  var responses = {};
+module.exports = chrome => {
+  const responses = {};
 
   return {
-    query: function(searchAllWindows) {
-      var opts = {
+    query: searchAllWindows => {
+      const opts = {
         sendTabData: true,
         searchAllWindows: searchAllWindows
       };
-      var fn = chrome.runtime.sendMessage.bind(chrome.runtime);
+      const fn = chrome.runtime.sendMessage.bind(chrome.runtime);
 
-      return util.pcall(fn, opts).then(function(data) {
-        var tabs = data.tabs;
-        var lastActive = data.lastActive;
+      return util.pcall(fn, opts).then(data => {
+        const tabs = data.tabs;
+        const lastActive = data.lastActive;
 
-        var firstTab = [];
-        var otherTabs = [];
+        const firstTab = [];
+        const otherTabs = [];
 
-        for(var idx in tabs) {
-          var tab = tabs[idx];
+        for(const tab of tabs) {
           if (tab.id === lastActive) firstTab.push(tab);
           else otherTabs.push(tab);
         }
@@ -2416,11 +2414,11 @@ module.exports = function(chrome) {
       });
     },
 
-    switchTo: function(tab) {
+    switchTo: tab => {
       chrome.runtime.sendMessage({switchToTabId: tab.id});
     },
 
-    close: function(tab) {
+    close: tab => {
       chrome.runtime.sendMessage({closeTabId: tab.id});
     }
   };
@@ -2438,35 +2436,27 @@ module.exports = function(chrome) {
  * is no match at all. Tabs with a score of 0 for both the title
  * and URL will not be returned from the filter.
  */
-module.exports = function(scorer) {
-  return function(query, array) {
-    return array.map(function(item) {
-      var titleScore = scorer(item.title.trim(), query.trim()) * 2;
-      var urlScore = scorer(item.url.trim(), query.trim());
-      var higherScore = titleScore >= urlScore ?
-        titleScore : urlScore;
-      return {
-        tab: item,
-        score: higherScore
-      };
-    }).filter(function(result) {
-      return result.score > 0;
-    }).sort(function(a, b) {
-      return b.score - a.score;
-    });
+module.exports = scorer => (query, array) => array.map(item => {
+  const titleScore = scorer(item.title.trim(), query.trim()) * 2;
+  const urlScore = scorer(item.url.trim(), query.trim());
+  const higherScore = titleScore >= urlScore ?
+      titleScore : urlScore;
+  return {
+    tab: item,
+    score: higherScore
   };
-};
+}).filter(result => result.score > 0).sort((a, b) => b.score - a.score);
 
 },{}],11:[function(require,module,exports){
-/** @jsx React.DOM */var stringSpanner = require("./string_spanner");
+/** @jsx React.DOM */const stringSpanner = require("./string_spanner");
 
-var MATCH_START = '<span class="match">';
-var MATCH_END = "</span>";
+const MATCH_START = '<span class="match">';
+const MATCH_END = "</span>";
 
 module.exports = React.createClass({displayName: 'exports',
     render: function() {
         /* jshint ignore:start */
-        var closeButton = this.props.selected ? (
+        const closeButton = this.props.selected ? (
             React.DOM.div({className: "close-button", onClick: this.onClickCloseButton}, 
                 "×"
             )
@@ -2505,11 +2495,11 @@ module.exports = React.createClass({displayName: 'exports',
     },
 
     ensureVisible: function() {
-        var node = this.getDOMNode();
-        var myTop = node.offsetTop;
-        var myBottom = myTop + node.offsetHeight;
-        var containerScrollTop = this.props.containerScrollTop;
-        var containerScrollBottom =
+        const node = this.getDOMNode();
+        const myTop = node.offsetTop;
+        const myBottom = myTop + node.offsetHeight;
+        const containerScrollTop = this.props.containerScrollTop;
+        const containerScrollBottom =
             containerScrollTop + this.props.containerHeight;
 
         if (myTop < containerScrollTop) this.props.setContainerScrollTop(myTop);
@@ -2560,7 +2550,7 @@ module.exports = React.createClass({displayName: 'exports',
 });
 
 },{"./string_spanner":8}],12:[function(require,module,exports){
-/** @jsx React.DOM */var TabItem = require('./tab_item.jsx');
+/** @jsx React.DOM */const TabItem = require('./tab_item.jsx');
 
 module.exports = React.createClass({displayName: 'exports',
   render: function() {
@@ -2596,7 +2586,7 @@ module.exports = React.createClass({displayName: 'exports',
 });
 
 },{"./tab_item.jsx":11}],13:[function(require,module,exports){
-/** @jsx React.DOM */var KeybindMixin = require("./keybind_mixin");
+/** @jsx React.DOM */const KeybindMixin = require("./keybind_mixin");
 
 module.exports = React.createClass({displayName: 'exports',
   mixins: [KeybindMixin],
@@ -2645,19 +2635,19 @@ module.exports = React.createClass({displayName: 'exports',
 });
 
 },{"./keybind_mixin":6}],14:[function(require,module,exports){
-/** @jsx React.DOM */var stringScore = require('../../../lib/string_score');
-var tabBroker = require('./tab_broker')(chrome);
-var tabFilter = require('./tab_filter')(stringScore);
+/** @jsx React.DOM */const stringScore = require('../../../lib/string_score');
+const tabBroker = require('./tab_broker')(chrome);
+const tabFilter = require('./tab_filter')(stringScore);
 
-var TabSearchBox = require('./tab_search_box.jsx');
-var TabList = require('./tab_list.jsx');
-var StatusBar = require('./status_bar.jsx');
+const TabSearchBox = require('./tab_search_box.jsx');
+const TabList = require('./tab_list.jsx');
+const StatusBar = require('./status_bar.jsx');
 
 module.exports = React.createClass({displayName: 'exports',
   getInitialState: function() {
     // TODO: move into a model
-    var searchAllWindows = localStorage.getItem('searchAllWindows');
-    try {
+      let searchAllWindows = localStorage.getItem('searchAllWindows');
+      try {
       searchAllWindows = searchAllWindows ? JSON.parse(searchAllWindows) : false;
     } catch (error) {
       searchAllWindows = false;
@@ -2728,8 +2718,8 @@ module.exports = React.createClass({displayName: 'exports',
   },
 
   activateSelected: function() {
-    var selected = this.getSelected();
-    if (selected) {
+      const selected = this.getSelected();
+      if (selected) {
       tabBroker.switchTo(selected);
       this.close();
     }
@@ -2737,16 +2727,16 @@ module.exports = React.createClass({displayName: 'exports',
 
   closeSelected: function() {
     /* jshint expr: true */
-    var selected = this.getSelected();
-    var index = this.state.tabs.indexOf(selected);
+      const selected = this.getSelected();
+      const index = this.state.tabs.indexOf(selected);
 
-    if (selected) {
+      if (selected) {
       this.modifySelected(1) || this.modifySelected(-1);
     }
 
     if (index > -1) {
-      var tabs = this.state.tabs;
-      tabs.splice(index, 1);
+        const tabs = this.state.tabs;
+        tabs.splice(index, 1);
       this.setState({tabs: tabs});
     }
 
@@ -2762,15 +2752,15 @@ module.exports = React.createClass({displayName: 'exports',
   },
 
   modifySelected: function(change) {
-    var filteredTabs = this.filteredTabs();
-    if (!filteredTabs.length) return;
+      const filteredTabs = this.filteredTabs();
+      if (!filteredTabs.length) return;
 
-    var currentIndex = filteredTabs.indexOf(this.getSelected());
-    var newIndex = currentIndex + change;
-    if (newIndex < 0) return false;
+      const currentIndex = filteredTabs.indexOf(this.getSelected());
+      const newIndex = currentIndex + change;
+      if (newIndex < 0) return false;
     if (newIndex >= filteredTabs.length) return false;
-    var newTab = filteredTabs[newIndex];
-    this.changeSelected(newTab);
+      const newTab = filteredTabs[newIndex];
+      this.changeSelected(newTab);
     return true;
   },
 
@@ -2787,18 +2777,18 @@ module.exports = React.createClass({displayName: 'exports',
 });
 
 },{"../../../lib/string_score":1,"./status_bar.jsx":7,"./tab_broker":9,"./tab_filter":10,"./tab_list.jsx":12,"./tab_search_box.jsx":13}],15:[function(require,module,exports){
-var Q = require('q');
+const Q = require('q');
 
 module.exports = {
   // `pcall` takes a function that takes a set of arguments and
   // a callback (NON-Node.js style) and turns it into a promise
   // that gets resolved with the arguments to the callback.
   pcall: function(fn) {
-    var deferred = Q.defer();
-    var callback = function() {
+    const deferred = Q.defer();
+    const callback = function () {
       deferred.resolve(Array.prototype.slice.call(arguments)[0]);
     };
-    var newArgs = Array.prototype.slice.call(arguments, 1);
+    const newArgs = Array.prototype.slice.call(arguments, 1);
     newArgs.push(callback);
     fn.apply(null, newArgs);
     return deferred.promise;

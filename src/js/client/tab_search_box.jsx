@@ -1,4 +1,4 @@
-var KeybindMixin = require("./keybind_mixin");
+const KeybindMixin = require("./keybind_mixin");
 
 module.exports = React.createClass({
   mixins: [KeybindMixin],

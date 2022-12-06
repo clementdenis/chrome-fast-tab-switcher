@@ -1,12 +1,12 @@
-var windowManager = require('../../src/js/background/window_manager');
-var api;
+const windowManager = require('../../src/js/background/window_manager');
+let api;
 
-var windowsWith = function(windows) {
-  return {
-    getAll: function(cb) {
-      cb(windows);
+const windowsWith = function (windows) {
+    return {
+        getAll: function (cb) {
+            cb(windows);
+        }
     }
-  }
 };
 
 exports.switcherWindowId = {
@@ -57,18 +57,20 @@ exports.lastWindowId = {
 
 exports.showSwitcher = {
   setUp: function(cb) {
-    var chrome = {
-      runtime: {
-        getURL: function() { return ""; }
-      },
-      windows: {
-        create: function(opts, cb) {
-          cb({id: 456});
-        }
-      }
-    };
+      const chrome = {
+          runtime: {
+              getURL: function () {
+                  return "";
+              }
+          },
+          windows: {
+              create: function (opts, cb) {
+                  cb({id: 456});
+              }
+          }
+      };
 
-    api = windowManager(chrome);
+      api = windowManager(chrome);
     cb();
   },
 
@@ -84,22 +86,22 @@ exports.showSwitcher = {
 
 exports.switchToTab = {
   setUp: function(cb) {
-    var chrome = {
-      tabs: {
-        update: function(tabId, options) {
-          if (!chrome.tabs.update.calls) chrome.tabs.update.calls = [];
-          chrome.tabs.update.calls.push([tabId, options]);
-        }, get: function(tabId, callback) {
-          callback({windowId: 1})
-        }
-      }, windows: {
-        update: function(windowId, options) {
-          if (!chrome.windows.update.calls) chrome.windows.update.calls = [];
-          chrome.windows.update.calls.push([windowId, options]);
-        }
-      }
-    };
-    this.chrome = chrome;
+      const chrome = {
+          tabs: {
+              update: function (tabId, options) {
+                  if (!chrome.tabs.update.calls) chrome.tabs.update.calls = [];
+                  chrome.tabs.update.calls.push([tabId, options]);
+              }, get: function (tabId, callback) {
+                  callback({windowId: 1})
+              }
+          }, windows: {
+              update: function (windowId, options) {
+                  if (!chrome.windows.update.calls) chrome.windows.update.calls = [];
+                  chrome.windows.update.calls.push([windowId, options]);
+              }
+          }
+      };
+      this.chrome = chrome;
 
     api = windowManager(chrome);
     cb();
@@ -116,16 +118,16 @@ exports.switchToTab = {
 
 exports.closeTab = {
   setUp: function(cb) {
-    var chrome = {
-      tabs: {
-        remove: function(tabId, callback) {
-          if (!chrome.tabs.remove.calls) chrome.tabs.remove.calls = [];
-          chrome.tabs.remove.calls.push([tabId]);
-          callback();
-        }
-      }
-    };
-    this.chrome = chrome;
+      const chrome = {
+          tabs: {
+              remove: function (tabId, callback) {
+                  if (!chrome.tabs.remove.calls) chrome.tabs.remove.calls = [];
+                  chrome.tabs.remove.calls.push([tabId]);
+                  callback();
+              }
+          }
+      };
+      this.chrome = chrome;
 
     api = windowManager(chrome);
     cb();
@@ -141,16 +143,16 @@ exports.closeTab = {
 
 exports.queryTabsInCurrentWindow = {
   setUp: function(cb) {
-    var chrome = {
-      tabs: {
-        query: function(options, callback) {
-          if (!chrome.tabs.query.calls) chrome.tabs.query.calls = [];
-          chrome.tabs.query.calls.push([options, callback]);
-          callback([{id: 1}, {id: 2}, {id: 3}]);
-        }
-      }
-    };
-    this.chrome = chrome;
+      const chrome = {
+          tabs: {
+              query: function (options, callback) {
+                  if (!chrome.tabs.query.calls) chrome.tabs.query.calls = [];
+                  chrome.tabs.query.calls.push([options, callback]);
+                  callback([{id: 1}, {id: 2}, {id: 3}]);
+              }
+          }
+      };
+      this.chrome = chrome;
 
     api = windowManager(chrome);
     cb();

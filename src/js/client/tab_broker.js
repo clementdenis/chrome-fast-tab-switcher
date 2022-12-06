@@ -1,26 +1,25 @@
-var Q = require('q');
-var util = require('../util');
+const Q = require('q');
+const util = require('../util');
 
-module.exports = function(chrome) {
-  var responses = {};
+module.exports = chrome => {
+  const responses = {};
 
   return {
-    query: function(searchAllWindows) {
-      var opts = {
+    query: searchAllWindows => {
+      const opts = {
         sendTabData: true,
         searchAllWindows: searchAllWindows
       };
-      var fn = chrome.runtime.sendMessage.bind(chrome.runtime);
+      const fn = chrome.runtime.sendMessage.bind(chrome.runtime);
 
-      return util.pcall(fn, opts).then(function(data) {
-        var tabs = data.tabs;
-        var lastActive = data.lastActive;
+      return util.pcall(fn, opts).then(data => {
+        const tabs = data.tabs;
+        const lastActive = data.lastActive;
 
-        var firstTab = [];
-        var otherTabs = [];
+        const firstTab = [];
+        const otherTabs = [];
 
-        for(var idx in tabs) {
-          var tab = tabs[idx];
+        for(const tab of tabs) {
           if (tab.id === lastActive) firstTab.push(tab);
           else otherTabs.push(tab);
         }
@@ -29,11 +28,11 @@ module.exports = function(chrome) {
       });
     },
 
-    switchTo: function(tab) {
+    switchTo: tab => {
       chrome.runtime.sendMessage({switchToTabId: tab.id});
     },
 
-    close: function(tab) {
+    close: tab => {
       chrome.runtime.sendMessage({closeTabId: tab.id});
     }
   };

@@ -2172,80 +2172,75 @@ exports.clearImmediate = typeof clearImmediate === "function" ? clearImmediate :
 };
 }).call(this)}).call(this,require("timers").setImmediate,require("timers").clearImmediate)
 },{"process/browser.js":1,"timers":3}],4:[function(require,module,exports){
-var Q = require('q');
-var tabHistory = require('./background/tab_history')(chrome);
-var windowManager = require('./background/window_manager')(chrome);
+const Q = require('q');
+const tabHistory = require('./background/tab_history')(chrome);
+const windowManager = require('./background/window_manager')(chrome);
 
-var PADDING_TOP = 50;
-var PADDING_BOTTOM = 50;
-var SWITCHER_WIDTH = 600;
+const PADDING_TOP = 50;
+const PADDING_BOTTOM = 50;
+const SWITCHER_WIDTH = 600;
 
 // Persist the tab history to local storage every minute.
-setInterval(function() {
+setInterval(() => {
   tabHistory.saveRecentTabs();
 }, 60 * 1000);
 
 // Chrome will wake up the extension, if necessary, to call this listener.
-chrome.tabs.onActivated.addListener(function(tab) {
-  var windowId = tab.windowId;
-  var tabId = tab.tabId;
+chrome.tabs.onActivated.addListener(tab => {
+  const windowId = tab.windowId;
+  const tabId = tab.tabId;
   tabHistory.addRecentTab(windowId, tabId);
 });
 
 // When the user closes a window, remove all that window's history.
-chrome.windows.onRemoved.addListener(function(windowId) {
+chrome.windows.onRemoved.addListener(windowId => {
   tabHistory.removeHistoryForWindow(windowId);
 });
 
 // Add the currently active tab for each window to the history
 // if they're not already the most recent active tab.
-tabHistory.getActiveTabs().then(function(tabs) {
-  for (var idx in tabs) {
-    var tab = tabs[idx];
-    var windowId = tab.windowId;
-    var tabId = tab.id;
+tabHistory.getActiveTabs().then(tabs => {
+  for (const tab of tabs) {
+    const windowId = tab.windowId;
+    const tabId = tab.id;
+    tabHistory.addRecentTab(windowId, tabId, true);
   }
-  tabHistory.addRecentTab(windowId, tabId, true);
 });
 
-chrome.commands.onCommand.addListener(function(command) {
+chrome.commands.onCommand.addListener(command => {
   // Users can bind a key to this command in their Chrome
   // keyboard shortcuts, at the bottom of their extensions page.
-  if (command == 'show-tab-switcher') {
-    var currentWindow = windowManager.getCurrentWindow();
-    var switcherWindowId = windowManager.getSwitcherWindowId();
+  if (command === 'show-tab-switcher') {
+    const currentWindow = windowManager.getCurrentWindow();
+    const switcherWindowId = windowManager.getSwitcherWindowId();
 
     Q.all([currentWindow, switcherWindowId])
-    .spread(function(currentWindow, switcherWindowId) {
+    .spread((currentWindow, switcherWindowId) => {
       // Don't activate the switcher from an existing switcher window.
-      if (currentWindow.id == switcherWindowId) return;
+      if (currentWindow.id === switcherWindowId) return;
 
       // When the user activates the switcher and doesn't have "search
       // in all windows" enabled, we need to know which was the last
       // non-switcher window that was active.
       windowManager.setLastWindowId(currentWindow.id);
-      var left = currentWindow.left +
-        Math.round((currentWindow.width - SWITCHER_WIDTH) / 2);
-      var top = currentWindow.top + PADDING_TOP;
-      var height = Math.max(currentWindow.height - PADDING_TOP - PADDING_BOTTOM, 600);
-      var width = SWITCHER_WIDTH;
-
-      windowManager.showSwitcher(width, height, left, top);
+      const left = currentWindow.left +
+          Math.round((currentWindow.width - SWITCHER_WIDTH) / 2);
+      const top = currentWindow.top + PADDING_TOP;
+      const height = Math.max(currentWindow.height - PADDING_TOP - PADDING_BOTTOM, 600);
+      windowManager.showSwitcher(SWITCHER_WIDTH, height, left, top);
     });
   }
 });
 
-chrome.runtime.onMessage.addListener(function(request, sender, respond) {
+chrome.runtime.onMessage.addListener((request, sender, respond) => {
   if (request.switchToTabId) {
     windowManager.switchToTab(request.switchToTabId);
   }
 
   if (request.sendTabData) {
     Q.all([tabHistory.getRecentTabs(), windowManager.getLastWindowId()])
-    .spread(function(recentTabs, lastWindowId) {
-      return windowManager.queryTabs(sender.tab.id, request.searchAllWindows,
-                                     recentTabs, lastWindowId);
-    }).then(function(data) {
+    .spread((recentTabs, lastWindowId) => windowManager.queryTabs(sender.tab.id, request.searchAllWindows,
+        recentTabs, lastWindowId)).then(data => {
       respond(data);
     });
     // We must return `true` so that Chrome leaves the
@@ -2259,45 +2254,39 @@ chrome.runtime.onMessage.addListener(function(request, sender, respond) {
 });
 
 },{"./background/tab_history":5,"./background/window_manager":6,"q":2}],5:[function(require,module,exports){
-var Q = require('q');
-var util = require('../util');
-var storeData;
-var windows;
+const Q = require('q');
+const util = require('../util');
+let storeData;
+let windows;
 
 // This module keeps a list of recently activated tabs, and persists
 // it to and from local storage. We use this data to allow the
 // user to quicly bounce back and forth between tabs.
-module.exports = function(chrome) {
-  var recentTabs = null;
+module.exports = chrome => {
+  let recentTabs = null;
 
   return {
-    getFromLocalStorage: function(key) {
-      return util.pcall(chrome.storage.local.get.bind(chrome.storage.local), key);
-    },
+    getFromLocalStorage: key => util.pcall(chrome.storage.local.get.bind(chrome.storage.local), key),
 
-    getAllWindows: function() {
-      return util.pcall(chrome.windows.getAll);
-    },
+    getAllWindows: () => util.pcall(chrome.windows.getAll),
 
-    getActiveTabs: function() {
-      return util.pcall(chrome.tabs.query.bind(chrome.tabs), {active: true});
-    },
+    getActiveTabs: () => util.pcall(chrome.tabs.query.bind(chrome.tabs), {active: true}),
 
     getRecentTabs: function() {
       if (!recentTabs) {
         storeData = this.getFromLocalStorage('lastTabs');
         windows = this.getAllWindows();
-        recentTabs = Q.all([storeData, windows]).spread(function(data, windows) {
+        recentTabs = Q.all([storeData, windows]).spread((data, windows) => {
           try {
             data = JSON.parse(data.lastTabs) || {};
           } catch (error) {
             data = {};
           }
-          var ids = windows.map(function(win) { return win.id.toString(); });
+          const ids = windows.map(win => win.id.toString());
           // Remove the histories for any windows
           // that have been closed since we last saved.
-          for (var key in data) {
-            if (ids.indexOf(key.toString()) == -1) {
+          for (let key in data) {
+            if (ids.indexOf(key.toString()) === -1) {
               delete data[key];
             }
           }
@@ -2309,9 +2298,9 @@ module.exports = function(chrome) {
     },
 
     addRecentTab: function(windowId, tabId, skipIfAlreadyRecent) {
-      return this.getRecentTabs().then(function(tabs) {
+      return this.getRecentTabs().then(tabs => {
         if (!tabs[windowId]) tabs[windowId] = [null];
-        if (skipIfAlreadyRecent && tabs[windowId][1] == tabId) return;
+        if (skipIfAlreadyRecent && tabs[windowId][1] === tabId) return;
         tabs[windowId].push(tabId);
         // We always want to display the next-to-most-recent tab to the user
         // (as the most recent tab is the one we're on now).
@@ -2323,58 +2312,48 @@ module.exports = function(chrome) {
     },
 
     removeHistoryForWindow: function(windowId) {
-      return this.getRecentTabs().then(function(tabs) {
+      return this.getRecentTabs().then(tabs => {
         delete tabs[windowId];
         recentTabs = Q.when(tabs);
       });
     },
 
-    saveRecentTabs: function() {
-      return Q.when(recentTabs).then(function(tabs) {
-        if (!tabs) return;
-        chrome.storage.local.set({lastTabs: JSON.stringify(tabs)});
-      });
-    }
+    saveRecentTabs: () => Q.when(recentTabs).then(tabs => {
+      if (!tabs) return;
+      chrome.storage.local.set({lastTabs: JSON.stringify(tabs)});
+    })
   };
 };
 
 },{"../util":7,"q":2}],6:[function(require,module,exports){
-var Q = require("q");
-var util = require("../util");
+const Q = require("q");
+const util = require("../util");
 
-module.exports = function(chrome) {
-    var switcherWindowId = Q.when(null);
-    var lastWindowId = Q.when(null);
+module.exports = chrome => {
+    let switcherWindowId = Q.when(null);
+    let lastWindowId = Q.when(null);
 
     return {
-        getTabInfo: function(tabId) {
-            return util.pcall(chrome.tabs.get, tabId);
-        },
+        getTabInfo: tabId => util.pcall(chrome.tabs.get, tabId),
 
-        getCurrentWindow: function() {
-            return util.pcall(chrome.windows.getCurrent);
-        },
+        getCurrentWindow: () => util.pcall(chrome.windows.getCurrent),
 
-        getSwitcherWindowId: function() {
-            return switcherWindowId;
-        },
+        getSwitcherWindowId: () => switcherWindowId,
 
-        setSwitcherWindowId: function(id) {
+        setSwitcherWindowId: id => {
             switcherWindowId = Q.when(id);
             return switcherWindowId;
         },
 
-        getLastWindowId: function() {
-            return lastWindowId;
-        },
+        getLastWindowId: () => lastWindowId,
 
-        setLastWindowId: function(id) {
+        setLastWindowId: id => {
             lastWindowId = Q.when(id);
             return lastWindowId;
         },
 
         showSwitcher: function(width, height, left, top) {
-            var opts = {
+            const opts = {
                 width: width,
                 height: height,
                 left: left,
@@ -2386,24 +2365,20 @@ module.exports = function(chrome) {
 
             return util
                 .pcall(chrome.windows.create.bind(chrome.windows), opts)
-                .then(
-                    function(switcherWindow) {
+                .then(function(switcherWindow) {
                         this.setSwitcherWindowId(switcherWindow.id);
-                    }.bind(this)
-                );
+                    }.bind(this));
         },
 
-        queryTabs: function(
+        queryTabs: (
             senderTabId,
             searchAllWindows,
             recentTabs,
             lastWindowId
-        ) {
-            var options = searchAllWindows ? {} : { windowId: lastWindowId };
-            return util.pcall(chrome.tabs.query, options).then(function(tabs) {
-                tabs = tabs.filter(function(tab) {
-                    return tab.id != senderTabId;
-                });
+        ) => {
+            const options = searchAllWindows ? {} : {windowId: lastWindowId};
+            return util.pcall(chrome.tabs.query, options).then(tabs => {
+                tabs = tabs.filter(tab => tab.id !== senderTabId);
                 return {
                     tabs: tabs,
                     lastActive: (recentTabs[lastWindowId] || [])[0] || null
@@ -2413,30 +2388,28 @@ module.exports = function(chrome) {
 
         switchToTab: function(tabId) {
             chrome.tabs.update(tabId, { active: true });
-            return this.getTabInfo(tabId).then(function(tab) {
+            return this.getTabInfo(tabId).then(tab => {
                 if (tab) chrome.windows.update(tab.windowId, { focused: true });
             });
         },
 
-        closeTab: function(tabId) {
-            return util.pcall(chrome.tabs.remove, tabId);
-        }
+        closeTab: tabId => util.pcall(chrome.tabs.remove, tabId)
     };
 };
 
 },{"../util":7,"q":2}],7:[function(require,module,exports){
-var Q = require('q');
+const Q = require('q');
 
 module.exports = {
   // `pcall` takes a function that takes a set of arguments and
   // a callback (NON-Node.js style) and turns it into a promise
   // that gets resolved with the arguments to the callback.
   pcall: function(fn) {
-    var deferred = Q.defer();
-    var callback = function() {
+    const deferred = Q.defer();
+    const callback = function () {
       deferred.resolve(Array.prototype.slice.call(arguments)[0]);
     };
-    var newArgs = Array.prototype.slice.call(arguments, 1);
+    const newArgs = Array.prototype.slice.call(arguments, 1);
     newArgs.push(callback);
     fn.apply(null, newArgs);
     return deferred.promise;
